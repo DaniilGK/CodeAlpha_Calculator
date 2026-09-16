@@ -48,41 +48,77 @@ const precedence = {
     '-': 2,
     '*': 3,
     '/': 3,
-    '**': 4,   // Возведение в степень (если нужно)
+    '**': 4, 
 };
 
-// function calculate() {
-//     const expression = input.textContent;
-//     let stack = [];
-//     let queue = [];
+/* Shunting-yard algorithm */
+function calculate() {
 
-//     for(const char of expression) {
-//         if(!isNaN(char) && char.trim() !== "") {
-//             queue.push(char);
-//         } else if(char === "(") {
-//             stack.push(char);
-//         } else if(char === ")") {
-//             while(stack.length > 0 && stack[stack.length - 1] !== "(") {
-//                 queue.push(stack.pop());
-//             }
-//             stack.pop();
-//         } else if(precedence[char]) {
-//             while(stack.length > 0 && precedence[stack.length - 1] >= precedence[char]) {
-//                 queue.push(stack.pop());
-//             }
-//             stack.push(char);
-//         }
-//     }
+    // Converting Infix Notation to Postfix Notation https://habr.com/ru/articles/489744/
+    const expression = input.textContent.match(/\d+|[\+\-\*\/]|[\(\)]/g) || [];
+    let stack = [];
+    let queue = [];
 
-//     while(stack.length > 0) {
-//         queue.push(stack.pop());
-//     }
+    for(const token of expression) {
+        if(!isNaN(token) && token.trim() !== "") {
+            queue.push(token);
+        } else if(token === "(") {
+            stack.push(token);
+        } else if(token === ")") {
+            while(stack.length > 0 && stack[stack.length - 1] !== "(") {
+                queue.push(stack.pop());
+            }
+            stack.pop();
+        } else if(precedence[token]) {
+            while(stack.length > 0 && precedence[stack[stack.length - 1]] >= precedence[token] && stack[stack.length - 1] !== "(") {
+                queue.push(stack.pop());
+            }
+            stack.push(token);
+        }
+    }
 
-//     console.log(queue);
-//     console.log(stack);
+    while(stack.length > 0) {
+        queue.push(stack.pop());
+    }
 
+    console.log(queue);
+    console.log(stack);
 
-// }
+    let prevNumber = null;
+    let currentNumber = null;
+    let operator = null;
+
+    for(const token of queue) {
+        if(!isNaN(token)) {
+            stack.push(token);
+        } else if(precedence[token]) {
+            currentNumber = stack.pop();
+            prevNumber = stack.pop();
+            operator = token;
+
+            switch(operator) {
+                case "+":
+                    stack.push(prevNumber + currentNumber);
+                    break;
+                case "-":
+                    stack.push(prevNumber - currentNumber);
+                    break;
+                case "*":
+                    stack.push(prevNumber * currentNumber);
+                    break;
+                case "÷":
+                    stack.push(prevNumber / currentNumber);
+                    break;
+                case "**":
+                    stack.push(prevNumber ** currentNumber);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+}
 
 function Parenthesis() {
     const openParen = input.textContent.split("(").length - 1;
