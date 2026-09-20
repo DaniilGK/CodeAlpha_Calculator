@@ -15,14 +15,16 @@
         <div class="calculator">
 
             <div class="history-nav">
-                <div class="history btn-history">
+                <div class="history" data-action="btn-history">
                   <img style="width: 16px; height: 16px;" src="./history-svgrepo-com.svg" alt="history">
                 </div>
 
-                <div class="history btn-history-menu">
-                    <img style="width: 16px; height: 16px;" src="./menu-vertical-svgrepo-com.svg" alt="menu">
+                <div class="history" data-action="btn-history-clear">
+                    <img style="width: 20px; height: 20px;" src="./Delete-History.svg" alt="clear">
                 </div>
             </div>
+            
+            <div class="history-list"></div>
 
             <div class="display">
                 <div class="input"></div>
@@ -31,14 +33,10 @@
             </div>
 
             <div class="buttons">
-                <!-- <div class="math-operators">
-
-                </div>  -->
-
                 <div class="number-arithmetic-buttons">
                     <button class="btn btn-action" data-action="clear">AC</button>
                     <button class="btn btn-action" data-action="parenthesis">()</button>
-                    <button class="btn btn-operator" data-operator="percentage">%</button> 
+                    <div class="btn-spacer"></div>
                     <button class="btn btn-operator" data-operator="division">÷</button>
                     <button class="btn btn-number" data-number="7">7</button>
                     <button class="btn btn-number" data-number="8">8</button>
@@ -60,6 +58,19 @@
             </div>
         </div>
     </div>
+    
+    <footer class="footer">
+
+        <p>Calculator</p>
+
+        <p>Made by <a href="https://github.com/DaniilGK" target="_blank">DaniilGK</a> for the <a href="https://www.codealpha.tech" target="_blank">CodeAlpha</a> Frontend Development Internship</p>
+
+        <p>Source code: <a href="https://github.com/DaniilGK/CodeAlpha_Calculator" target="_blank">GitHub repo</a></p>
+    
+        <p>&copy; 2026 Daniil Gerasimyonok</p>
+
+    </footer>
+
     <script src="script.js"></script>   
 </body>
 </html>

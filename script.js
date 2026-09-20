@@ -2,137 +2,38 @@ const input = document.querySelector('.input');
 const result = document.querySelector('.result');
 const realTimeResult = document.querySelector('.real-time-result');
 
-// const Btns = document.querySelectorAll('.btn');
+const historyNavigation = document.querySelectorAll('.history');
+const historyList = document.querySelector('.history-list');
 
 const actionBtn = document.querySelectorAll('.btn-action');
 const operatorBtn = document.querySelectorAll('.btn-operator');
 const numberBtn = document.querySelectorAll('.btn-number');
 
-actionBtn.forEach(e => {
-    e.addEventListener("click", () => {
-        if(e.dataset.action === "clear") {
-            input.textContent = "";
-        } else if(e.dataset.action === "parenthesis") {
-            Parenthesis();
-        } else if(e.dataset.action === "del") {
-            input.textContent = input.textContent.slice(0, -1);
-        } else if(e.dataset.action === "equal") {
-            calculate();
-        }
-    })
-});
+const operatorSymbolsList = Array.from(operatorBtn).map(btn => btn.textContent);
 
-operatorBtn.forEach(e => {
-    e.addEventListener("click", () => {
-        const symbol = e.textContent;
-        const isEmpty = input.textContent.length === 0;
-
-        if(isEmpty) {
-            if(symbol === "-") {
-                input.textContent += symbol;
-            }
-        } else if(!isLastCharOperator()) {
-            input.textContent += e.textContent;
-        }
-    })
-});
-
-numberBtn.forEach(e => {
-    e.addEventListener("click", () => {
-        input.textContent += e.textContent;
-    })
-});
-
+// operator precedence for the Shunting-yard algorithm 
 const precedence = {
     '+': 2,
     '-': 2,
     '*': 3,
-    '/': 3,
-    '**': 4, 
+    '÷': 3,
+    '**': 4,
 };
 
-/* Shunting-yard algorithm */
-function calculate() {
+// arithmetic operations mapped to their symbols
+const operations = {
+    '+': (a, b) => a + b,
+    '-': (a, b) => a - b,
+    '*': (a, b) => a * b,
+    '÷': (a, b) => a / b,
+    '**': (a, b) => a ** b,
+};
 
-    // Converting Infix Notation to Postfix Notation https://habr.com/ru/articles/489744/
-    const expression = input.textContent.match(/\d+|[\+\-\*\/]|[\(\)]/g) || [];
-    let stack = [];
-    let queue = [];
+// History array
+let historyArray = [];
 
-    for(const token of expression) {
-        if(!isNaN(token) && token.trim() !== "") {
-            queue.push(token);
-        } else if(token === "(") {
-            stack.push(token);
-        } else if(token === ")") {
-            while(stack.length > 0 && stack[stack.length - 1] !== "(") {
-                queue.push(stack.pop());
-            }
-            stack.pop();
-        } else if(precedence[token]) {
-            while(stack.length > 0 && precedence[stack[stack.length - 1]] >= precedence[token] && stack[stack.length - 1] !== "(") {
-                queue.push(stack.pop());
-            }
-            stack.push(token);
-        }
-    }
-
-    while(stack.length > 0) {
-        queue.push(stack.pop());
-    }
-
-    console.log(queue);
-    console.log(stack);
-
-    let prevNumber = null;
-    let currentNumber = null;
-    let operator = null;
-
-    for(const token of queue) {
-        if(!isNaN(token)) {
-            stack.push(token);
-        } else if(precedence[token]) {
-            currentNumber = stack.pop();
-            prevNumber = stack.pop();
-            operator = token;
-
-            switch(operator) {
-                case "+":
-                    stack.push(prevNumber + currentNumber);
-                    break;
-                case "-":
-                    stack.push(prevNumber - currentNumber);
-                    break;
-                case "*":
-                    stack.push(prevNumber * currentNumber);
-                    break;
-                case "÷":
-                    stack.push(prevNumber / currentNumber);
-                    break;
-                case "**":
-                    stack.push(prevNumber ** currentNumber);
-                    break;
-                default:
-                    break;
-            }
-        }
-    }
-
-}
-
-function Parenthesis() {
-    const openParen = input.textContent.split("(").length - 1;
-    const closeParen = input.textContent.split(")").length - 1;
-
-    if(openParen > closeParen) {
-        input.textContent += ")";
-    } else {
-        input.textContent += "(";
-    }
-}
-
+// checks the last character in the input is an operator
 function isLastCharOperator() {
-    const operatorSymbolsList = Array.from(operatorBtn).map(btn => btn.textContent);
     const text = input.textContent;
     if (text.length === 0) return false;
 
@@ -140,11 +41,260 @@ function isLastCharOperator() {
     return operatorSymbolsList.includes(lastChar);
 }
 
-function displayLength() {
+// checks the last number already contains a dot
+function isLastSegmentHasDot() {
     const text = input.textContent;
-    if(text.length > 20) {
-        input.textContent = text.slice(0, -1);
+    const separators = [...operatorSymbolsList, "("];
+
+    let lastSeparatorIndex = -1;
+    for (let i = text.length - 1; i >= 0; i--) {
+        if (separators.includes(text[i])) {
+            lastSeparatorIndex = i;
+            break;
+        }
+    }
+
+    const lastSegment = text.slice(lastSeparatorIndex + 1);
+    return lastSegment.includes(".");
+}
+
+// shunting-yard algorithm https://habr.com/ru/articles/489744/
+// converts infix notation to postfix (RPN), then evaluates it
+function evaluateExpression(text) {
+    const expression = text.match(/\d+\.?\d*|\*\*|[\+\-\*÷]|[\(\)]/g) || [];
+    let operatorStack = [];
+    let outputQueue = [];
+
+    // infix to postfix
+    for (const token of expression) {
+        if (!isNaN(token) && token.trim() !== "") {
+            outputQueue.push(token);
+        } else if (token === "(") {
+            operatorStack.push(token);
+        } else if (token === ")") {
+            while (operatorStack.length > 0 && operatorStack[operatorStack.length - 1] !== "(") {
+                outputQueue.push(operatorStack.pop());
+            }
+            operatorStack.pop(); // pop the "("
+        } else if (precedence[token]) {
+            while (
+                operatorStack.length > 0 &&
+                precedence[operatorStack[operatorStack.length - 1]] >= precedence[token] &&
+                operatorStack[operatorStack.length - 1] !== "("
+            ) {
+                outputQueue.push(operatorStack.pop());
+            }
+            operatorStack.push(token);
+        }
+    }
+
+    while (operatorStack.length > 0) {
+        outputQueue.push(operatorStack.pop());
+    }
+
+    // evaluate postfix (RPN)
+    let calcStack = [];
+
+    for (const token of outputQueue) {
+        if (!isNaN(token)) {
+            calcStack.push(token);
+        } else if (precedence[token]) {
+            const currentNumber = calcStack.pop();
+            const prevNumber = calcStack.pop();
+
+            const operation = operations[token];
+            if (operation) {
+                calcStack.push(operation(Number(prevNumber), Number(currentNumber)));
+            }
+        }
+    }
+
+    return calcStack[0]; // final result, does not touch the DOM
+}
+
+// live preview of the result while typing 
+function updateRealTimeResult() {
+    const text = input.textContent;
+    const lastChar = text[text.length - 1];
+
+    if (text.length === 0 || isLastCharOperator() || lastChar === "(") {
+        realTimeResult.textContent = "";
+        return;
+    }
+
+    const value = evaluateExpression(text);
+
+    if (value === undefined || isNaN(value)) {
+        realTimeResult.textContent = "";
+    } else {
+        realTimeResult.textContent = "= " + value;
     }
 }
 
-/*нельзя ставить точки подряд и не больше одном в одном числе*/
+// calculation when "=" is pressed
+function calculateResult() {
+    const text = input.textContent;
+    const lastChar = text[text.length - 1];
+
+    if (text.length === 0 || lastChar === "." || isLastCharOperator()) {
+        return;
+    }
+
+    const value = evaluateExpression(text);
+    if (value === undefined || isNaN(value)) return;
+
+    addToHistory(text, value);
+
+    result.textContent = text + "= " + value.toString(); // freeze the past expression above
+    input.textContent = value.toString(); // result becomes the new working line
+    realTimeResult.textContent = "";
+}
+
+function clearAll() {
+    input.textContent = "";
+    realTimeResult.textContent = "";
+}
+
+function deleteLastChar() {
+    input.textContent = input.textContent.slice(0, -1);
+    updateRealTimeResult();
+}
+
+// adds an opening or closing parenthesis
+function toggleParenthesis() {
+    const text = input.textContent;
+    const lastChar = text[text.length - 1];
+    const openCount = text.split("(").length - 1;
+    const closeCount = text.split(")").length - 1;
+
+    if (openCount > closeCount) {
+        if (lastChar === "." || isLastCharOperator()) return;
+        input.textContent += ")";
+    } else {
+        input.textContent += "(";
+    }
+    updateRealTimeResult();
+}
+
+function addToHistory(expression, value) {
+    historyArray.push(`${expression} = ${value}`);
+    renderHistory();
+}
+
+function renderHistory() {
+    historyList.innerHTML = "";
+    historyArray.forEach(entry => {
+        const p = document.createElement("p");
+        p.textContent = entry;
+        historyList.appendChild(p);
+    });
+}
+
+function clearHistory() {
+    historyArray = [];
+    renderHistory();
+}
+
+// handle operator input
+function handleOperatorInput(symbol) {
+    const text = input.textContent;
+    const isEmpty = text.length === 0;
+    const lastChar = text[text.length - 1];
+    const lastTwoChars = text.slice(-2);
+
+    // block operators at the start of the expression or right after a dot
+    if (isEmpty || lastChar === ".") return;
+
+    // turn "*" into "**", but never allow "***"
+    if (symbol === "*" && lastChar === "*") {
+        if (lastTwoChars === "**") return;
+        input.textContent += symbol;
+        return;
+    }
+
+    // block two operators in a row
+    if (!isLastCharOperator()) {
+        input.textContent += symbol;
+    }
+    updateRealTimeResult();
+}
+
+// handle number input
+function handleNumberInput(symbol) {
+    if (symbol === ".") {
+        const text = input.textContent;
+        const isEmpty = text.length === 0;
+        const lastChar = text[text.length - 1];
+
+        // block a dot at the start, after an operator, or right after "(" or ")"
+        if (isEmpty || isLastCharOperator() || lastChar === "(" || lastChar === ")") return;
+
+        // block a second dot within the current number
+        if (isLastSegmentHasDot()) return;
+    }
+
+    input.textContent += symbol;
+    updateRealTimeResult();
+}
+
+historyNavigation.forEach(btn => {
+    btn.addEventListener("click", () => {
+        if (btn.dataset.action === "btn-history") {
+            historyList.classList.toggle("open");
+        } else if (btn.dataset.action === "btn-history-clear") {
+            clearHistory();
+        }
+    });
+});
+
+actionBtn.forEach(btn => {
+    btn.addEventListener("click", () => {
+        if (btn.dataset.action === "clear") {
+            clearAll();
+        } else if (btn.dataset.action === "parenthesis") {
+            toggleParenthesis();
+        } else if (btn.dataset.action === "del") {
+            deleteLastChar();
+        } else if (btn.dataset.action === "equal") {
+            calculateResult();
+        }
+    });
+});
+
+// handle operator input
+operatorBtn.forEach(btn => {
+    btn.addEventListener("click", () => handleOperatorInput(btn.textContent));
+});
+
+// handle number input
+numberBtn.forEach(btn => {
+    btn.addEventListener("click", () => handleNumberInput(btn.textContent));
+});
+
+// Keyboard input
+document.addEventListener("keydown", (e) => {
+    const key = e.key;
+
+    if (key >= "0" && key <= "9") {
+        handleNumberInput(key);
+    } else if (key === ".") {
+        handleNumberInput(".");
+    } else if (key === "+") {
+        handleOperatorInput("+");
+    } else if (key === "-") {
+        handleOperatorInput("-");
+    } else if (key === "*") {
+        handleOperatorInput("*");
+    } else if (key === "/") {
+        e.preventDefault(); // stops Firefox's quick-find feature
+        handleOperatorInput("÷");
+    } else if (key === "(" || key === ")") {
+        toggleParenthesis();
+    } else if (key === "Enter" || key === "=") {
+        calculateResult();
+    } else if (key === "Backspace") {
+        deleteLastChar();
+    } else if (key === "Escape") {
+        clearAll();
+    }
+});
